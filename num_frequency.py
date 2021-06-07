@@ -5,4 +5,7 @@ for num in sys.argv[1:]:
       num_dict[int(num)] += 1
    else:
       num_dict[int(num)] = 1
-print(num_dict)
+count = len(num_dict) - 1
+for i in num_dict:
+   print(f"{i}:{num_dict[i]}", end = ", " if count > 0 else "")
+   count -= 1
