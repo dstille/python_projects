@@ -1,5 +1,3 @@
-import sys, re
-
 table = {}
 
 def create_exps(str_in):
@@ -9,11 +7,16 @@ def create_exps(str_in):
 
 def find_parentheses(str_in):
     l_left_index = []
-    l_parentheses = []
+    l_simple_parentheses = []
+    l_complex_parentheses = []
     for i in range(len(str_in)):
         if str_in[i] == "(": l_left_index.append(i)
-        if str_in[i] == ")": l_parentheses.append(str_in[l_left_index.pop(-1): i + 1])
-    return l_parentheses
+        if str_in[i] == ")":
+            if "(" in str_in[l_left_index[-1] + 1:]:
+                l_complex_parentheses.append(str_in[l_left_index.pop(-1): i + 1])
+            else:
+                l_simple_parentheses.append(str_in[l_left_index.pop(-1): i + 1])
+    return l_simple_parentheses + l_complex_parentheses
 
 def find_vars(str_in):
     return [i for i in "abcdefghijklmnopqrstuvwyz" if i in str_in]
@@ -45,6 +48,7 @@ def find_right_arg(op_index, str_in):
             return str_in[op_index + 1: i]
 
 def evaluate(col_A, col_B, op, str_in):
+    str_in = "(" + str_in + ")"
     table[str_in] = []
     for (a, b) in zip(table[col_A], table[col_B]):
          if op == "&":
@@ -56,10 +60,17 @@ def evaluate(col_A, col_B, op, str_in):
          elif op == "=>":
              table[str_in] += [False if a and not b else True]
     print(table)
+    print_table()
 
 
 def eval_not(col, str_in):
     table[str_in] = [not i for i in table[col]]
+
+def print_table():
+   for column in table.keys():
+       print(column, end = " ")
+
+
 
 
 
@@ -74,8 +85,7 @@ for exp in exps_to_eval:
     for op in operators:
         for i in range(len(exp)):
             print(i)
-            if op in exp[i:]:
-                i = exp[i:].index(op)
+            if exp[i: i + len(op)] == op:
                 print(i)
                 right_arg = find_right_arg(i + len(op) - 1, exp)
                 if op != "~":
@@ -86,6 +96,7 @@ for exp in exps_to_eval:
                     evaluate(left_arg, right_arg, op, left_arg + op + right_arg)
                 else:
                      eval_not(right_arg, op + right_arg)
+
 print(table)
 
 
