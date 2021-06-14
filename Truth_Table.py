@@ -10,12 +10,12 @@ def find_parentheses(str_in):
     l_simple_parentheses = []
     l_complex_parentheses = []
     for i in range(len(str_in)):
-        if str_in[i] == "(": l_left_index.append(i)
+        if str_in[i] == "(": l_left_index += [i]
         if str_in[i] == ")":
             if "(" in str_in[l_left_index[-1] + 1:]:
-                l_complex_parentheses.append(str_in[l_left_index.pop(-1): i + 1])
+                l_complex_parentheses += [str_in[l_left_index.pop(-1): i + 1]]
             else:
-                l_simple_parentheses.append(str_in[l_left_index.pop(-1): i + 1])
+                l_simple_parentheses += [str_in[l_left_index.pop(-1): i + 1]]
     return l_simple_parentheses + l_complex_parentheses
 
 def find_vars(str_in):
@@ -29,13 +29,12 @@ def create_table(lst_in):
         row_num = 0
         while(row_num < num_rows):
             for row in range(2**(num_var - var_num - 1)):
-                column.append(True)
+                column += [True]
                 row_num += 1
             for row in range(2**(num_var - var_num - 1)):
-                column.append(False)
+                column += [False]
                 row_num += 1
         table[lst_in[var_num]] = column
-    print(table)
 
 def find_left_arg(op_index, str_in):
     for i in range(0, op_index):
@@ -59,20 +58,30 @@ def evaluate(col_A, col_B, op, str_in):
              table[str_in] += [a == b]
          elif op == "=>":
              table[str_in] += [False if a and not b else True]
-    print(table)
-    print_table()
 
 
 def eval_not(col, str_in):
     table[str_in] = [not i for i in table[col]]
 
 def print_table():
-   for column in table.keys():
-       print(column, end = " ")
-
-
-
-
+   for column in table:
+       print(f"{column}", end = " ")
+   print()
+   for column in table:
+       for i in range(len(column)): print("-", end = "")
+       print("-", end = "")
+   print()
+   for row in range(len(table["p"])):
+       for column in table:
+           spaces = len(column) - 1
+           for i in range(int(spaces/2)):
+               print(" ", end = "")
+               spaces -= 1
+           print("T" if table[column][row] else "F", end = " ")
+           while spaces > 0:
+               print(" ", end = "")
+               spaces -= 1
+       print()
 
 
 
@@ -84,20 +93,12 @@ left_arg = ""
 for exp in exps_to_eval:
     for op in operators:
         for i in range(len(exp)):
-            print(i)
             if exp[i: i + len(op)] == op:
-                print(i)
                 right_arg = find_right_arg(i + len(op) - 1, exp)
                 if op != "~":
                     left_arg = find_left_arg(i, exp)
-                    print(left_arg)
-                    print(right_arg)
-                    print(op)
                     evaluate(left_arg, right_arg, op, left_arg + op + right_arg)
                 else:
                      eval_not(right_arg, op + right_arg)
-
 print(table)
-
-
-
+print_table()
