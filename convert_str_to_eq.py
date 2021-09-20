@@ -1,3 +1,4 @@
+import re
 
 def find_parentheses(s: str):
     left_indexes = []
@@ -23,7 +24,7 @@ def find_right_arg(op_index, s):
     return s[op_index + 1:]    
 
 def find_3fields(op_index, s):
-    return s[op_index:].split(",", 2)
+    return re.split("[,\)]", s[op_index:])[:3]
 
 def evaluate(op, args):
      if op == "SUM": return "SUM," + args[0] + "," + args[1] + "," + args[2], summation(args[0], args[1], args[2])
@@ -60,8 +61,11 @@ def eval_term(str_in):
                         args += [find_left_arg(i, exp)]
                         args += [find_right_arg(i + len(op) - 1, exp)]
                     #print("args", args)
-                    evaluated, d[evaluated] = evaluate(op, args)               
-           # print(d)
+                    evaluated, value = evaluate(op, args) 
+                    if "(" + evaluated + ")"== exp: evaluated = "(" + evaluated + ")"
+                    d[evaluated] = value
+
+            #print(d)
     return d[evaluated], evaluated    
 
 def summation(orig, end, term):
@@ -71,7 +75,7 @@ def summation(orig, end, term):
     sum = 0
     for i in range(start, d[end] + 1):
         d[curr] = i
-        print(i, curr)
+       # print(i, curr)
         sum += eval_term(term)[0]
     return sum
 
@@ -79,13 +83,32 @@ def summation(orig, end, term):
 
 if __name__ == "__main__":
     d = {}
+    #exp6 = "(SUM,i=1,100,i+1)^2"
+    #print(find_3fields(5,exp6))
     exp = "1-SUM,i=5,10,i^2"
     eval_term(exp)
     print(d[exp])
     exp2 = "SUM,i=0,5,SUM,j=i,3,j"
-    print(find_3fields(4, exp2))
     eval_term(exp2)
+    print(d)
     print(d[exp2])
+    exp3 = "SUM,i=1,100,i+1"
+    d = {}
+    eval_term(exp3)
+    print(d)
+    print(d[exp3])
+    eval_term('i=4')
+    exp4 = '5*i^2+6'
+    eval_term(exp4)
+    print(d[exp4])
+    #exp5 = "SUM,i=1,100,i+1*SUM,i=1,100,i+1"
+    #eval_term(exp5)
+    #print(d[exp5])
+    exp6 = "(SUM,i=1,100,i+1)^2"
+    #print(find_3fields(exp6))
+    eval_term(exp6)
+    print(d[exp6])
+
     
     
 
