@@ -1,113 +1,108 @@
 import re
 
+d = {}
+
 def find_parentheses(s: str):
     left_indexes = []
+    sums = []
     simple_parentheses = []
     complex_parentheses = []
     for i in range(len(s)):
         if s[i] == "(": left_indexes += [i]
         if s[i] == ")":
-            if "(" in s[left_indexes[-1] + 1:]:
-                complex_parentheses += [s[left_indexes.pop(-1): i + 1]]
+            substr = s[left_indexes.pop(-1): i + 1]
+            if "(" in substr[1:]:
+                complex_parentheses += [substr]
+            elif substr[1:4] == 'SUM':
+                sums += [substr]    
             else:
-                simple_parentheses += [s[left_indexes.pop(-1): i + 1]]
-    return simple_parentheses + complex_parentheses
+                simple_parentheses += [substr]
+    return sums + simple_parentheses + complex_parentheses
 
-def find_left_arg(op_index, str_in):
-    for i in range(op_index):
-        if str_in[i: op_index] in d: return str_in[i: op_index]
-    return str_in[:op_index]    
+def find_left_arg(s):
+    for i in range(len(s)):
+        substr = s[i:]
+        if substr in d:
+            return substr
+    return s        
+    
+def find_right_arg(s):
+    for i in range(len(s), -1, -1):
+        substr = s[:i]
+        if substr in d: 
+            return substr
+    return s    
 
-def find_right_arg(op_index, s):
-    for i in range(len(s), op_index, -1):
-        if s[op_index + 1: i] in d: return s[op_index + 1: i]
-    return s[op_index + 1:]    
-
-def find_3fields(op_index, s):
-    return re.split("[,\)]", s[op_index:])[:3]
+def find_3fields(s):
+    print(s)
+    return re.split(r"[,\)]", s)[1:4]
 
 def evaluate(op, args):
-     if op == "SUM": return "SUM," + args[0] + "," + args[1] + "," + args[2], summation(args[0], args[1], args[2])
-     elif op == "^": return args[0] + op + args[1], d[args[0]]**d[args[1]]
-     elif op == "*": return args[0] + op + args[1], d[args[0]]*d[args[1]]
-     elif op == "/": return args[0] + op + args[1], d[args[0]]/d[args[1]]
-     elif op == "+": return args[0] + op + args[1], d[args[0]]+d[args[1]]
-     elif op == "-": return args[0] + op + args[1], d[args[0]]-d[args[1]]
-     elif op == "=": return args[0], d[args[1]]
+     if op == "SUM":
+         begin, end, term = args
+         return f"SUM,{begin},{end},{term}", summation(begin, end, term)
+     lftarg, rghtarg = args
+     if op != '=': print(lftarg, rghtarg, d[lftarg], d[rghtarg])    
+     if op == "^": return lftarg + op + rghtarg, d[lftarg]**d[rghtarg]
+     if op == "*": return lftarg + op + rghtarg, d[lftarg]*d[rghtarg]
+     if op == "/": return lftarg + op + rghtarg, d[lftarg]/d[rghtarg]
+     if op == "+": return lftarg + op + rghtarg, d[lftarg]+d[rghtarg]
+     if op == "-": return lftarg + op + rghtarg, d[lftarg]-d[rghtarg]
+     if op == "=": return lftarg, d[rghtarg]
 
 def find_nums(s):
-    skip = -1
-    for i in range(len(s)):
-        if s[i] in "0123456789" and i > skip:
-             for j in range(i, len(s)):
-                 if j == len(s) -1 or s[j+1] not in "0123456789":
-                     d[s[i:j+1]] = int(s[i:j+1])
-                     skip = j
-                     break
+    nums = re.findall('\d+', s)
+    if nums:
+        for num in nums:
+            d[num] = int(num)
 
-def eval_term(str_in):
-    find_nums(str_in)
-    evaluated = str_in
-    exps_to_eval = find_parentheses(str_in) + [str_in]
-    operators = ["SUM", "^", "*", "/", "+", "-", "="]
+def prep(s):
+    find_nums(s) 
+    return find_parentheses(s) + [s]           
+
+def parse(s):
+    evaluated = s    
+    exps_to_eval = prep(s)
     for exp in exps_to_eval:
-        for op in operators:
-            for i in range(len(exp)):
-                args = []
-                if exp[i: i + len(op)] == op:
-                    if op == "SUM":
-                        args += find_3fields(i + len(op) + 1, str_in)    
-                    else:    
-                        args += [find_left_arg(i, exp)]
-                        args += [find_right_arg(i + len(op) - 1, exp)]
-                    #print("args", args)
-                    evaluated, value = evaluate(op, args) 
-                    if "(" + evaluated + ")"== exp: evaluated = "(" + evaluated + ")"
-                    d[evaluated] = value
+        operators = find_ops(exp)
+        for op, sides in operators.items():
+            for left, right in sides:
+                if op == "SUM":
+                    args = find_3fields(right)  
+                else:    
+                    args = [find_left_arg(left)] + [find_right_arg(right)]
+                evaluated, value = evaluate(op, args) 
+                if f'({evaluated})'== exp: evaluated = f'({evaluated})'
+                d[evaluated] = value
+    return d[evaluated], evaluated
 
-            #print(d)
-    return d[evaluated], evaluated    
+def find_ops(s):
+    d = {}
+    for i in range(len(s)):
+        for op in ['SUM', '^', '*', '/', '+', '-', '=']:
+            substr = s[i: i + len(op)]
+            if substr == op:
+                sides = (s[:i], s[i + len(op):])
+                d[op] = d[op] + [sides] if op in d else [sides]           
+    return d       
 
 def summation(orig, end, term):
-   # print("end: ", end)
-    start, curr = eval_term(orig)
-   # print("start: ", start)
+    start, curr = parse(orig)
     sum = 0
-    for i in range(start, d[end] + 1):
-        d[curr] = i
-       # print(i, curr)
-        sum += eval_term(term)[0]
+    for idx in range(start, d[end] + 1):
+        d[curr] = idx
+        sum += parse(term)[0]  
     return sum
+
+def resolve(s):
+    parse(s)
+    return d[s]    
 
 
 
 if __name__ == "__main__":
-    d = {}
-    #exp6 = "(SUM,i=1,100,i+1)^2"
-    #print(find_3fields(5,exp6))
-    exp = "1-SUM,i=5,10,i^2"
-    eval_term(exp)
-    print(d[exp])
-    exp2 = "SUM,i=0,5,SUM,j=i,3,j"
-    eval_term(exp2)
-    print(d)
-    print(d[exp2])
-    exp3 = "SUM,i=1,100,i+1"
-    d = {}
-    eval_term(exp3)
-    print(d)
-    print(d[exp3])
-    eval_term('i=4')
-    exp4 = '5*i^2+6'
-    eval_term(exp4)
-    print(d[exp4])
-    #exp5 = "SUM,i=1,100,i+1*SUM,i=1,100,i+1"
-    #eval_term(exp5)
-    #print(d[exp5])
-    exp6 = "(SUM,i=1,100,i+1)^2"
-    #print(find_3fields(exp6))
-    eval_term(exp6)
-    print(d[exp6])
+    exp = '(SUM,i=1,10,2*i)'
+    print(resolve(exp))
 
     
     
