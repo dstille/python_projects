@@ -4,12 +4,12 @@ d = {}
 
 def find_parentheses(s: str):
     lft_idxs, sums, simple_par, complex_par = [], [], [], []
-    for i in range(len(s)):
-        if s[i] == "(": lft_idxs += [i]
-        if s[i] == ")":
-            substr = s[lft_idxs.pop(): i + 1]
-            if "(" in substr[1:]: complex_par += [substr]
-            elif substr[1:4] == 'SUM': sums += [substr]    
+    for idx, char in enumerate(s):
+        if char == "(": lft_idxs += [idx]
+        if char == ")":
+            substr = s[lft_idxs.pop(): idx + 1]
+            if substr[1:4] == 'SUM': sums += [substr] 
+            elif "(" in substr[1:]: complex_par += [substr]   
             else: simple_par += [substr]
     return sums + simple_par + complex_par
 
